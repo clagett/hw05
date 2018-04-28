@@ -1,0 +1,217 @@
+---
+title: "hw05"
+author: "Matthew Clagett"
+date: "April 27, 2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+auxillary function for die
+```{r}
+#' @title check_sides
+#' @description checks the number of sides of a die to see if it is a value argument
+#' @param input sides of the die
+#' @return 
+check_sides <- function(sides){
+     if(length(sides) != 6 ){
+          stop("sides must be a vector length of 6")
+     }
+}
+
+#' @title check_prob
+#' @description checks the probabilities to see if they are a correct input
+#' @param input probabilities of the die sides
+#' @return 
+check_prob <- function(prob){
+     if(sum(prob) != 1){
+          stop("elements in prob must add up to 1")
+     } else if(length(prob) != 6){
+          stop("prob must be a vector length of 6")
+     }
+}
+```
+print method for die
+```{r}
+#' @title print.die
+#' @description print method for objects of type "die"
+print.die <- function(x, ...){
+     cat('object "die"\n\n')
+     print(data.frame(side = x$side, prob = x$prob))
+}
+```
+
+Created function that builds a die object
+```{r}
+#' @title die object
+#' @description creates an object of class "die"
+#' @param input sides of each die - six total
+#' @param input probabilities corresponding to each side of the die
+die <- function(sides = c(1:6), prob = rep(1/length(sides), length(sides))){
+     check_sides(sides)
+     check_prob(prob)
+     
+     die1 <- list(side = sides,
+                  prob = prob)
+     die1 <- structure(die1, class = "die")
+     die1
+}
+```
+
+
+auxillary function for rolls
+```{r}
+#' @title check_times
+#' @description checks whether input is a valid number of rolls for a die
+#' @param times number of times the die is to be rolled
+check_times <- function(times){
+     if(times < 1 | times%%1!=0){
+          stop("die roll must be a positive integer")
+     }
+}
+```
+
+print method for roll
+```{r}
+#' @title print.roll
+#' @description print method for objects of type roll
+print.roll <- function(x, ...){
+     cat('object "roll"\n\n')
+     print(x$rolls)
+}
+```
+function creates an object class roll
+```{r}
+#' @title roll
+#' @description takes a die and a number of rolls, returns object class rolls
+#' @param die object of die class
+#' @param times number of rolls
+roll <- function(die, times){
+     check_times(times)
+     rolls <- list(rolls = sample(die$side, times, replace=TRUE, prob = die$prob),
+                   sides = die$side,
+                   prob = die$prob,
+                   total = times)
+     rolls <- structure(rolls, class = "roll")
+     rolls
+}
+```
+testing the functionality of roll
+
+summary method for roll
+```{r}
+#' @title summary.roll
+#' @description summary method for objects of type roll
+summary.roll <- function(x, ...){
+     summary <- list(freqs = data.frame(count = table(x$rolls),
+                prop = x$prob))
+     colnames(summary$freqs) <- c("side", "count", "prop")
+     structure(summary, class="summary.roll")
+}
+```
+print summary method for roll
+```{r}
+#' @title print.summary.roll
+#' @description print method for summary.roll
+print.summary.roll <- function(x, ...){
+     cat('summary "roll"\n\n')
+     print(x$freqs)
+}
+```
+
+plot method for roll
+```{r}
+plot.roll <- function(x, ...){
+     relative_freqs <- x$freqs$count/sum(x$freqs$count)
+     barplot(table(x$rolls)/length(x$rolls), 
+             xlab = "sides of die",
+             ylab = "relative frequencies", 
+             main = paste0("Frequencies in a series of ",length(x$rolls)," rolls"))
+}
+```
+
+extraction method for roll
+```{r}
+#' @title extraction.roll
+#' @description extraction method for object of class "roll"
+"[.roll" <- function(x, i){
+     x$rolls[i]
+}
+```
+
+
+replacement method for roll
+```{r}
+#' @title index roll
+#' @description index method for summary.roll
+"[<-.roll" <- function(x,i,value){
+     if(!(value %in% x$sides)){
+          stop(paste('\nReplacing value must be in: ',x$sides))
+     }
+     if(i>x$total){
+          stop("\nindex out of bounds")
+     }
+     x$rolls[i] <- value
+     x
+}
+```
+
+```{r}
+#' @title +.roll
+#' @description addition method for roll
+"+.roll" <- function(obj, incr){
+     if(length(incr) != 1 | incr <= 0){
+          stop("\ninvalid addition (must be positive")
+     }
+     more_rolls <- roll(obj, times = incr)
+     obj$rolls <- c(obj$rolls, more_rolls$rolls)
+     obj$total <- obj$total + incr
+     obj
+}
+```
+
+### Testing functionality of the "dieroller" package
+Problem 1:
+1000 games of rolling a die 4 times, find the probability of at least one six
+
+generating a fair die
+```{r}
+die <- die()
+```
+
+Creating a simulation of 100 rolls
+```{r}
+rolls <- matrix(nrow=1000, ncol =4)
+for (i in 1:1000){
+     rolls[i,] <- roll(die, 4)$rolls
+}
+```
+finding the relative frequencies of finding a 6
+```{r}
+rf <- apply(rolls, 1, function(x){6 %in% x})
+
+relative_freqs <- rep(0,1000)
+for (i in 1:1000){
+     relative_freqs[i] <- sum(rf[1:i]/length(rf[1:i]))
+}
+relative_freqs
+```
+
+roll two dice, 24 times find frequencies of both having sixes
+```{r}
+sixes <- c(rep(0,1000))
+for (i in 1:1000){
+     sixes[i] <- any(roll(die,24)[1:24] == 6 & roll(die,24)[1:24] == 6)
+}
+
+
+relative_freqs_both <- rep(0,1000)
+for (i in 1:1000){
+     relative_freqs_both[i] <- sum(sixes[1:i]/length(sixes[1:i]))
+}
+relative_freqs_both
+```
+
+
